@@ -1,3 +1,4 @@
+﻿import dishSalmonNigiri from '../assets/images/dish_salmon_nigiri_1793107469696.jpg';
 import React, { useState } from 'react';
 import {
   LayoutDashboard,
@@ -979,7 +980,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     japanese_name: '',
                     description: '',
                     price: 250,
-                    image_url: '/src/assets/images/dish_salmon_nigiri_1793107469696.jpg',
+                    image_url: dishSalmonNigiri,
                     stock_quantity: 30,
                     low_stock_threshold: 5,
                     is_available: true,

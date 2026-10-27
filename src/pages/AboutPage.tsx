@@ -1,3 +1,4 @@
+﻿import interiorDiningRoom from '../assets/images/interior_dining_room_1793107472270.jpg';
 import React from 'react';
 import { Sparkles, Heart, Utensils, MapPin, Phone, ShieldCheck, ArrowRight } from 'lucide-react';
 import { RestaurantSettings } from '../types';
@@ -29,7 +30,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ settings, onNavigate }) =>
       {/* Hero Atmosphere Image */}
       <div className="relative rounded-2xl overflow-hidden border border-[#2b2b35] shadow-2xl bg-[#141418]">
         <img
-          src="/src/assets/images/interior_dining_room_1793107472270.jpg"
+          src={interiorDiningRoom}
           alt="Honyaki Authentic Sushi Valencia dining room"
           referrerPolicy="no-referrer"
           className="w-full h-auto aspect-[16/9] object-cover"

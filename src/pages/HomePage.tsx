@@ -1,3 +1,5 @@
+﻿import heroSushiSpread from '../assets/images/hero_sushi_spread_1793107470076.jpg';
+import interiorDiningRoom from '../assets/images/interior_dining_room_1793107472270.jpg';
 import React from 'react';
 import { ArrowRight, Clock, MapPin, Sparkles, UtensilsCrossed, Truck, Users, CalendarCheck, ShieldCheck } from 'lucide-react';
 import { MenuItem, RestaurantSettings } from '../types';
@@ -98,7 +100,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div className="lg:col-span-5 relative">
               <div className="relative rounded-2xl overflow-hidden border border-[#2b2b35] shadow-2xl bg-[#141418]">
                 <img
-                  src="/src/assets/images/hero_sushi_spread_1793107470076.jpg"
+                  src={heroSushiSpread}
                   alt="Honyaki Authentic Sushi Valencia artisanal sushi feast"
                   referrerPolicy="no-referrer"
                   className="w-full h-auto aspect-[4/3] object-cover"
@@ -325,7 +327,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             
             <div className="lg:col-span-6 relative rounded-2xl overflow-hidden border border-[#2b2b35] shadow-2xl">
               <img
-                src="/src/assets/images/interior_dining_room_1793107472270.jpg"
+                src={interiorDiningRoom}
                 alt="Interior dining room of Honyaki Authentic Sushi Valencia"
                 referrerPolicy="no-referrer"
                 className="w-full h-auto aspect-[16/9] object-cover"
