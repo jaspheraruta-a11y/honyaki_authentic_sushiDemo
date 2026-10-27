@@ -1,0 +1,6 @@
+{
+  "name": "Honyaki Authentic Sushi Valencia",
+  "description": "Authentic Japanese-inspired sushi, maki rolls, ramen, party platters, and dining in Valencia City, Bukidnon, Philippines. Online ordering, reservations, and catering inquiries.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
