@@ -241,66 +241,81 @@ export const HomePage: React.FC<HomePageProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredDishes.map((dish) => (
-            <div
-              key={dish.id}
-              className="group bg-[#151519] border border-[#26262e] rounded-2xl overflow-hidden flex flex-col hover:border-neutral-500 transition-all shadow-md"
+        {featuredDishes.length === 0 ? (
+          <div className="py-12 px-6 rounded-2xl bg-[#141418] border border-[#24242e] text-center space-y-3">
+            <p className="font-serif text-lg text-white">Daily specials are being prepared</p>
+            <p className="text-xs text-neutral-400 max-w-md mx-auto">
+              Our chef's signature selections are updated daily according to fresh seafood deliveries. Explore our complete digital menu to view available dishes.
+            </p>
+            <button
+              onClick={() => onNavigate('/menu')}
+              className="mt-2 px-5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider text-white bg-[#991b1b] hover:bg-[#b91c1c] transition-colors cursor-pointer"
             >
-              {/* Dish Image */}
-              <div className="relative aspect-[4/3] bg-[#1a1a20] overflow-hidden">
-                <img
-                  src={dish.image_url}
-                  alt={dish.name}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#151519] via-transparent to-transparent pointer-events-none" />
-                
-                <span className="absolute top-3 right-3 text-[11px] font-mono font-semibold bg-black/70 backdrop-blur-sm text-amber-300 px-2 py-0.5 rounded border border-neutral-700 tabular-nums">
-                  ₱{dish.price}
-                </span>
-              </div>
-
-              {/* Dish Info */}
-              <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                <div>
-                  <h3 className="font-serif text-base font-bold text-white group-hover:text-amber-100 transition-colors">
-                    {dish.name}
-                  </h3>
-                  {dish.japanese_name && (
-                    <p className="text-[11px] text-neutral-400 font-serif tracking-widest mt-0.5">
-                      {dish.japanese_name}
-                    </p>
-                  )}
-                  <p className="text-xs text-neutral-400 line-clamp-2 mt-2 leading-relaxed">
-                    {dish.description}
-                  </p>
+              Explore Full Menu
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredDishes.map((dish) => (
+              <div
+                key={dish.id}
+                className="group bg-[#151519] border border-[#26262e] rounded-2xl overflow-hidden flex flex-col hover:border-neutral-500 transition-all shadow-md"
+              >
+                {/* Dish Image */}
+                <div className="relative aspect-[4/3] bg-[#1a1a20] overflow-hidden">
+                  <img
+                    src={dish.image_url}
+                    alt={dish.name}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#151519] via-transparent to-transparent pointer-events-none" />
+                  
+                  <span className="absolute top-3 right-3 text-[11px] font-mono font-semibold bg-black/70 backdrop-blur-sm text-amber-300 px-2 py-0.5 rounded border border-neutral-700 tabular-nums">
+                    ₱{dish.price}
+                  </span>
                 </div>
 
-                <div className="pt-2 border-t border-[#22222a] flex items-center justify-between gap-2">
-                  <div className="text-[11px] text-neutral-400">
-                    {dish.stock_quantity > 0 ? (
-                      <span className="text-emerald-400">In Stock</span>
-                    ) : (
-                      <span className="text-red-400">Sold Out</span>
+                {/* Dish Info */}
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div>
+                    <h3 className="font-serif text-base font-bold text-white group-hover:text-amber-100 transition-colors">
+                      {dish.name}
+                    </h3>
+                    {dish.japanese_name && (
+                      <p className="text-[11px] text-neutral-400 font-serif tracking-widest mt-0.5">
+                        {dish.japanese_name}
+                      </p>
                     )}
+                    <p className="text-xs text-neutral-400 line-clamp-2 mt-2 leading-relaxed">
+                      {dish.description}
+                    </p>
                   </div>
-                  <button
-                    onClick={() => onOpenDishModal(dish)}
-                    disabled={dish.stock_quantity <= 0}
-                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#22222b] hover:bg-[#991b1b] hover:text-white text-neutral-200 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    Select & Add
-                  </button>
+
+                  <div className="pt-2 border-t border-[#22222a] flex items-center justify-between gap-2">
+                    <div className="text-[11px] text-neutral-400">
+                      {dish.stock_quantity > 0 ? (
+                        <span className="text-emerald-400">In Stock</span>
+                      ) : (
+                        <span className="text-red-400">Sold Out</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => onOpenDishModal(dish)}
+                      disabled={dish.stock_quantity <= 0}
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[#22222b] hover:bg-[#991b1b] hover:text-white text-neutral-200 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      Select & Add
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* The Craft & Atmosphere of Honyaki */}

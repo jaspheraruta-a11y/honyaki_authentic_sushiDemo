@@ -16,7 +16,11 @@ This document describes how to configure Supabase, manage database migrations, r
    - Copy and paste the entire script from `/supabase/migrations/20261027_honyaki_schema.sql`.
    - Click **Run**. This provisions all tables, indexes, and Row Level Security (RLS) policies.
 
-3. **Configure Storage**:
+3. **Create the Admin Account**:
+   - In the **SQL Editor**, run the script from `/supabase/migrations/20261027_create_admin_account.sql`.
+   - This automatically creates `honyakiitamaesushi2016@gmail.com` with confirmed status and assigns the `admin` role in `public.profiles`.
+
+4. **Configure Storage**:
    - Navigate to **Storage** in your Supabase Dashboard.
    - Create a public bucket called `menu-dishes`.
    - Under bucket policies, allow public `SELECT` and restrict `INSERT/UPDATE/DELETE` to authenticated staff (`public.is_staff_or_admin()`).

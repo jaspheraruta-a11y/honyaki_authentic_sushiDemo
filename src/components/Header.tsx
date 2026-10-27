@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShoppingBag, Menu as MenuIcon, X, ShieldCheck, MapPin } from 'lucide-react';
 import logo from '../assets/images/honyaki-logo.jpg';
 import { RestaurantSettings } from '../types';
+import { useDemoMode } from '../context/DemoModeContext';
 
 interface HeaderProps {
   currentRoute: string;
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCart,
   settings,
 }) => {
+  const { isDemoMode, openDemoModal } = useDemoMode();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
 
@@ -36,7 +38,13 @@ export const Header: React.FC<HeaderProps> = ({
       {showBanner && settings.announcement_banner && (
         <div className="bg-[#1f1d1b] border-b border-[#2e2a27] text-xs text-[#dcd6cc] px-3 sm:px-4 py-2 flex items-center justify-between z-50">
           <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 sm:gap-3 w-full min-w-0 pr-2">
-            <span className="hidden sm:inline text-[#b91c1c] font-semibold shrink-0">NOTICE</span>
+            {isDemoMode ? (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                DEMO MODE
+              </span>
+            ) : (
+              <span className="hidden sm:inline text-[#b91c1c] font-semibold shrink-0">NOTICE</span>
+            )}
             <span className="truncate text-[11px] sm:text-xs">{settings.announcement_banner}</span>
             <span className="hidden md:inline text-neutral-400">·</span>
             <a
@@ -77,9 +85,23 @@ export const Header: React.FC<HeaderProps> = ({
               className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-contain shrink-0"
             />
             <div className="min-w-0">
-              <span className="font-serif text-lg sm:text-2xl font-bold tracking-wide text-neutral-100 group-hover:text-amber-100 transition-colors block truncate">
-                HONYAKI
-              </span>
+              <div className="flex items-center">
+                <span className="font-serif text-lg sm:text-2xl font-bold tracking-wide text-neutral-100 group-hover:text-amber-100 transition-colors block truncate">
+                  HONYAKI
+                </span>
+                {isDemoMode && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openDemoModal(e.currentTarget);
+                    }}
+                    title="Demonstration Website - Click for info"
+                    className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/40 hover:bg-amber-500/25 transition-colors cursor-pointer"
+                  >
+                    DEMO
+                  </span>
+                )}
+              </div>
               <span className="hidden min-[380px]:block text-[9px] sm:text-[10px] tracking-[0.15em] uppercase text-neutral-400 font-sans truncate">
                 Authentic Sushi · Valencia
               </span>

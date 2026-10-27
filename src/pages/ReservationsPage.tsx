@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CalendarCheck, Users, Clock, AlertCircle, CheckCircle2, Phone, Sparkles } from 'lucide-react';
 import { RestaurantSettings, Reservation } from '../types';
 import { restaurantStore } from '../lib/store';
+import { useDemoMode } from '../context/DemoModeContext';
 
 interface ReservationsPageProps {
   settings: RestaurantSettings;
@@ -12,6 +13,7 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({
   settings,
   onNavigate,
 }) => {
+  const { isDemoMode, openDemoModal } = useDemoMode();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -51,6 +53,11 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDemoMode) {
+      const submitBtn = (e.target as HTMLElement).querySelector('button[type="submit"]') as HTMLElement | null;
+      openDemoModal(submitBtn || (document.activeElement as HTMLElement | null));
+      return;
+    }
     setErrorMessage(null);
 
     if (!customerName.trim()) {
@@ -97,8 +104,15 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({
       updated_at: new Date().toISOString(),
     };
 
-    const existing = restaurantStore.getReservations();
-    restaurantStore.saveReservations([newRes, ...existing]);
+    restaurantStore.createReservation(newRes);
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('honyaki_my_recent_reservations') || '[]');
+      if (!existing.includes(newRes.id)) {
+        localStorage.setItem('honyaki_my_recent_reservations', JSON.stringify([newRes.id, ...existing]));
+      }
+      localStorage.setItem('honyaki_customer_phone', customerPhone.trim());
+    } catch (e) {}
 
     setIsSubmitting(false);
     setSubmittedReservation(newRes);
@@ -322,6 +336,12 @@ export const ReservationsPage: React.FC<ReservationsPageProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
+            onClick={(e) => {
+              if (isDemoMode) {
+                e.preventDefault();
+                openDemoModal(e.currentTarget);
+              }
+            }}
             className="w-full py-4 rounded-xl font-semibold text-xs uppercase tracking-wider text-white bg-[#991b1b] hover:bg-[#b91c1c] transition-all shadow-lg shadow-red-950/40 cursor-pointer disabled:opacity-50"
           >
             {isSubmitting ? 'Transmitting Request...' : 'Submit Table Reservation Request'}

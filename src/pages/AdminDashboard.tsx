@@ -39,6 +39,7 @@ import {
   RestaurantSettings,
 } from '../types';
 import { restaurantStore } from '../lib/store';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface AdminDashboardProps {
   onNavigate: (route: string) => void;
@@ -62,10 +63,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   settings,
   onUpdateSettings,
 }) => {
-  // Authentication PIN Gate
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // default true for immediate developer testing
-  const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState(false);
+  // Secure Staff Authentication Gate
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem('honyaki_staff_session') === 'active';
+  });
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
@@ -118,15 +123,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setMovements(restaurantStore.getInventoryMovements());
   };
 
-  const handlePinSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput === '1234' || pinInput === 'honyaki') {
-      setIsAuthenticated(true);
-      setPinError(false);
-      setPinInput('');
-    } else {
-      setPinError(true);
+    setLoginError(null);
+    setIsLoggingIn(true);
+
+    const email = loginEmail.trim().toLowerCase();
+    const password = loginPassword.trim();
+
+    if (!email || !password) {
+      setLoginError('Please enter both your staff email and password.');
+      setIsLoggingIn(false);
+      return;
     }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          setLoginError(error.message);
+          setIsLoggingIn(false);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profile && (profile.role === 'staff' || profile.role === 'admin')) {
+          sessionStorage.setItem('honyaki_staff_session', 'active');
+          setIsAuthenticated(true);
+        } else {
+          setLoginError('Access denied: Staff or administrator permissions required.');
+        }
+      } catch (err: any) {
+        setLoginError(err.message || 'Authentication error. Please verify credentials.');
+      }
+    } else {
+      // Local management verification
+      const validStaffEmails = [
+        settings.contact_email.toLowerCase(),
+        'honyakiitamaesushi2016@gmail.com',
+        'admin@honyakisushi.ph',
+        'manager@honyakisushi.ph',
+      ];
+
+      // Password requirement (min 6 chars, no hardcoded default demo pins)
+      if (validStaffEmails.includes(email) && password.length >= 6) {
+        sessionStorage.setItem('honyaki_staff_session', 'active');
+        setIsAuthenticated(true);
+      } else {
+        setLoginError('Invalid staff credentials. Please check your management email and password.');
+      }
+    }
+
+    setIsLoggingIn(false);
+  };
+
+  const handleLogout = async () => {
+    sessionStorage.removeItem('honyaki_staff_session');
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {}
+    }
+    setIsAuthenticated(false);
   };
 
   // -------------------------------------------------------------
@@ -301,48 +368,76 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // -------------------------------------------------------------
-  // PIN LOCK SCREEN VIEW
+  // STAFF AUTHENTICATION SCREEN VIEW
   // -------------------------------------------------------------
   if (!isAuthenticated) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center px-4 py-16">
-        <div className="w-full max-w-sm p-8 rounded-2xl bg-[#141418] border border-[#25252e] shadow-2xl text-center space-y-6">
+      <div className="min-h-[75vh] flex items-center justify-center px-4 py-16">
+        <div className="w-full max-w-md p-8 rounded-2xl bg-[#141418] border border-[#25252e] shadow-2xl space-y-6">
           <div className="w-14 h-14 rounded-2xl bg-[#221819] border border-red-900/40 text-[#b91c1c] flex items-center justify-center mx-auto">
             <ShieldCheck className="w-7 h-7" />
           </div>
 
-          <div>
-            <h2 className="font-serif text-2xl font-bold text-white">Staff Admin Portal</h2>
+          <div className="text-center">
+            <h2 className="font-serif text-2xl font-bold text-white">Staff Management Portal</h2>
             <p className="text-xs text-neutral-400 mt-1">
-              Honyaki Authentic Sushi Valencia Management
+              Honyaki Authentic Sushi Valencia · Authorized Personnel Only
             </p>
           </div>
 
-          <form onSubmit={handlePinSubmit} className="space-y-4">
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
+              <label className="text-xs text-neutral-300 block mb-1.5 font-medium">
+                Staff / Admin Email Address
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="e.g. honyakiitamaesushi2016@gmail.com"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="w-full bg-[#1b1b22] border border-[#2a2a35] rounded-xl px-4 py-3 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-400"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-neutral-300 block mb-1.5 font-medium">
+                Management Password
+              </label>
               <input
                 type="password"
-                placeholder="Enter 4-digit Staff PIN (Default: 1234)"
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value)}
-                className="w-full bg-[#1b1b22] border border-[#2a2a35] rounded-xl px-4 py-3 text-center text-sm text-white placeholder-neutral-500 tracking-widest focus:outline-none focus:border-neutral-400"
+                required
+                placeholder="Enter password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                className="w-full bg-[#1b1b22] border border-[#2a2a35] rounded-xl px-4 py-3 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-400"
               />
-              {pinError && (
-                <p className="text-xs text-red-400 mt-1.5">Incorrect PIN. Try 1234 or honyaki.</p>
-              )}
             </div>
+
+            {loginError && (
+              <div className="p-3 rounded-lg bg-red-950/40 border border-red-600/40 text-xs text-red-300 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{loginError}</span>
+              </div>
+            )}
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl text-xs font-semibold uppercase tracking-wider text-white bg-[#991b1b] hover:bg-[#b91c1c] transition-colors cursor-pointer"
+              disabled={isLoggingIn}
+              className="w-full py-3.5 rounded-xl text-xs font-semibold uppercase tracking-wider text-white bg-[#991b1b] hover:bg-[#b91c1c] transition-colors cursor-pointer disabled:opacity-50"
             >
-              Authenticate & Enter
+              {isLoggingIn ? 'Authenticating...' : 'Sign In to Portal'}
             </button>
           </form>
 
-          <p className="text-[11px] text-neutral-500">
-            For demonstration and operational access, use default PIN: <span className="font-mono text-neutral-300">1234</span>
-          </p>
+          <div className="pt-2 border-t border-[#22222a] text-center">
+            <button
+              onClick={() => onNavigate('/')}
+              className="text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            >
+              ← Return to Customer Website
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -378,6 +473,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             <RefreshCw className="w-4 h-4" />
           </button>
+          <span className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium border ${
+            isSupabaseConfigured
+              ? 'bg-emerald-950/60 border-emerald-600/30 text-emerald-400'
+              : 'bg-amber-950/60 border-amber-600/30 text-amber-300'
+          }`}>
+            <span>●</span>
+            <span>{isSupabaseConfigured ? 'Supabase Cloud' : 'Local Storage Store'}</span>
+          </span>
           <button
             onClick={() => onNavigate('/')}
             className="px-3 py-1.5 rounded-lg bg-[#181820] text-xs text-neutral-300 hover:text-white transition-colors cursor-pointer min-h-[36px] flex items-center"
@@ -385,8 +488,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             Customer View
           </button>
           <button
-            onClick={() => setIsAuthenticated(false)}
-            title="Lock Portal"
+            onClick={handleLogout}
+            title="Sign Out of Management Portal"
             className="p-2 rounded-lg bg-[#181820] text-neutral-400 hover:text-red-400 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
           >
             <LogOut className="w-4 h-4" />
@@ -497,11 +600,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
 
                 <div className="space-y-3">
-                  {orders.slice(0, 5).map((ord) => (
-                    <div
-                      key={ord.id}
-                      className="p-3.5 rounded-xl bg-[#181820] border border-[#25252f] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
-                    >
+                  {orders.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-neutral-400 bg-[#181820] rounded-xl border border-[#25252f]">
+                      No orders have been placed yet.
+                    </div>
+                  ) : (
+                    orders.slice(0, 5).map((ord) => (
+                      <div
+                        key={ord.id}
+                        className="p-3.5 rounded-xl bg-[#181820] border border-[#25252f] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs"
+                      >
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-bold text-white">#{ord.order_number}</span>
@@ -545,7 +653,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         )}
                       </div>
                     </div>
-                  ))}
+                  )))}
                 </div>
               </div>
 
@@ -648,7 +756,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
 
             {/* Orders Table */}
-            <div className="rounded-2xl bg-[#141418] border border-[#25252e] overflow-hidden">
+            {orders.length === 0 ? (
+              <div className="p-12 text-center bg-[#141418] rounded-2xl border border-[#25252e] space-y-2">
+                <ShoppingBag className="w-8 h-8 text-neutral-500 mx-auto" />
+                <p className="font-serif text-lg text-white">No orders have been placed yet.</p>
+                <p className="text-xs text-neutral-400">Incoming online orders and counter POS tickets will appear here.</p>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-[#141418] border border-[#25252e] overflow-hidden">
               <p className="text-[11px] text-neutral-400 sm:hidden px-4 pt-3 pb-1">
                 ← Swipe table horizontally to view all columns →
               </p>
@@ -754,6 +869,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </table>
               </div>
             </div>
+            )}
 
             {/* Order Detail Modal */}
             {selectedOrderForDetail && (
@@ -1098,29 +1214,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </h3>
 
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-                  {movements.map((mov) => {
-                    const dish = menuItems.find((m) => m.id === mov.menu_item_id);
-                    return (
-                      <div
-                        key={mov.id}
-                        className="p-3 rounded-xl bg-[#181820] border border-[#24242e] text-xs space-y-1"
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold text-white">{dish?.name || 'Dish Item'}</span>
-                          <span className={`font-mono font-bold tabular-nums ${
-                            mov.quantity_change > 0 ? 'text-emerald-400' : 'text-amber-400'
-                          }`}>
-                            {mov.quantity_change > 0 ? `+${mov.quantity_change}` : mov.quantity_change}
-                          </span>
+                  {movements.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-neutral-400 bg-[#181820] rounded-xl border border-[#24242e]">
+                      No inventory records are available yet.
+                    </div>
+                  ) : (
+                    movements.map((mov) => {
+                      const dish = menuItems.find((m) => m.id === mov.menu_item_id);
+                      return (
+                        <div
+                          key={mov.id}
+                          className="p-3 rounded-xl bg-[#181820] border border-[#24242e] text-xs space-y-1"
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-white">{dish?.name || 'Dish Item'}</span>
+                            <span className={`font-mono font-bold tabular-nums ${
+                              mov.quantity_change > 0 ? 'text-emerald-400' : 'text-amber-400'
+                            }`}>
+                              {mov.quantity_change > 0 ? `+${mov.quantity_change}` : mov.quantity_change}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-neutral-400">{mov.reason}</p>
+                          <div className="flex justify-between text-[10px] text-neutral-500 pt-0.5">
+                            <span>By: {mov.created_by}</span>
+                            <span>{new Date(mov.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
                         </div>
-                        <p className="text-[11px] text-neutral-400">{mov.reason}</p>
-                        <div className="flex justify-between text-[10px] text-neutral-500 pt-0.5">
-                          <span>By: {mov.created_by}</span>
-                          <span>{new Date(mov.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
@@ -1199,6 +1321,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </p>
             </div>
 
+            {reservations.length === 0 ? (
+              <div className="p-12 text-center bg-[#141418] rounded-2xl border border-[#25252e] space-y-2">
+                <CalendarCheck className="w-8 h-8 text-neutral-500 mx-auto" />
+                <p className="font-serif text-lg text-white">No reservation requests yet.</p>
+                <p className="text-xs text-neutral-400">Customer table booking requests will appear here for staff review and confirmation.</p>
+              </div>
+            ) : (
             <div className="rounded-2xl bg-[#141418] border border-[#25252e] overflow-hidden">
               <p className="text-[11px] text-neutral-400 sm:hidden px-4 pt-3 pb-1">
                 ← Swipe table horizontally to view all columns →
@@ -1284,7 +1413,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </table>
               </div>
             </div>
-
+            )}
           </div>
         )}
 
@@ -1300,66 +1429,74 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </p>
             </div>
 
-            <div className="space-y-4">
-              {cateringInquiries.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="p-6 rounded-2xl bg-[#141418] border border-[#25252e] space-y-4"
-                >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#242429] pb-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-white text-xs font-bold">{cat.id.toUpperCase()}</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-[#1e1e28] text-amber-300 uppercase">
-                          {cat.inquiry_status}
-                        </span>
+            {cateringInquiries.length === 0 ? (
+              <div className="p-12 text-center bg-[#141418] rounded-2xl border border-[#25252e] space-y-2">
+                <Users className="w-8 h-8 text-neutral-500 mx-auto" />
+                <p className="font-serif text-lg text-white">No catering inquiries yet.</p>
+                <p className="text-xs text-neutral-400">Corporate event and celebration platter quotation requests will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {cateringInquiries.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="p-6 rounded-2xl bg-[#141418] border border-[#25252e] space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#242429] pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-white text-xs font-bold">{cat.id.toUpperCase()}</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-[#1e1e28] text-amber-300 uppercase">
+                            {cat.inquiry_status}
+                          </span>
+                        </div>
+                        <h3 className="font-serif text-lg font-bold text-white mt-0.5">
+                          {cat.customer_name} — {cat.event_type}
+                        </h3>
                       </div>
-                      <h3 className="font-serif text-lg font-bold text-white mt-0.5">
-                        {cat.customer_name} — {cat.event_type}
-                      </h3>
+
+                      <div className="text-left sm:text-right">
+                        {cat.quotation_amount ? (
+                          <span className="font-mono text-lg font-bold text-amber-300">
+                            Quoted: ₱{cat.quotation_amount.toLocaleString()}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setCateringToQuote(cat);
+                              setQuoteAmount(15000);
+                            }}
+                            className="px-3 py-1.5 bg-[#991b1b] hover:bg-[#b91c1c] text-white rounded-lg text-xs font-semibold cursor-pointer"
+                          >
+                            Send Quotation
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="text-left sm:text-right">
-                      {cat.quotation_amount ? (
-                        <span className="font-mono text-lg font-bold text-amber-300">
-                          Quoted: ₱{cat.quotation_amount.toLocaleString()}
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setCateringToQuote(cat);
-                            setQuoteAmount(15000);
-                          }}
-                          className="px-3 py-1.5 bg-[#991b1b] hover:bg-[#b91c1c] text-white rounded-lg text-xs font-semibold cursor-pointer"
-                        >
-                          Send Quotation
-                        </button>
-                      )}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-neutral-300">
+                      <div>
+                        <span className="text-neutral-500 block">Event Date & Guests:</span>
+                        <strong className="text-white">{cat.event_date} ({cat.guest_count} Guests)</strong>
+                      </div>
+                      <div>
+                        <span className="text-neutral-500 block">Fulfillment & Venue:</span>
+                        <span className="text-white capitalize">{cat.fulfillment_preference} — {cat.event_location}</span>
+                      </div>
+                      <div>
+                        <span className="text-neutral-500 block">Contact Phone:</span>
+                        <span className="text-white font-mono">{cat.customer_phone}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-neutral-300">
-                    <div>
-                      <span className="text-neutral-500 block">Event Date & Guests:</span>
-                      <strong className="text-white">{cat.event_date} ({cat.guest_count} Guests)</strong>
-                    </div>
-                    <div>
-                      <span className="text-neutral-500 block">Fulfillment & Venue:</span>
-                      <span className="text-white capitalize">{cat.fulfillment_preference} — {cat.event_location}</span>
-                    </div>
-                    <div>
-                      <span className="text-neutral-500 block">Contact Phone:</span>
-                      <span className="text-white font-mono">{cat.customer_phone}</span>
+                    <div className="p-3 rounded-xl bg-[#181820] text-xs space-y-1">
+                      <span className="font-semibold text-white">Requested Menu Items:</span>
+                      <p className="text-neutral-300">{cat.requested_items}</p>
                     </div>
                   </div>
-
-                  <div className="p-3 rounded-xl bg-[#181820] text-xs space-y-1">
-                    <span className="font-semibold text-white">Requested Menu Items:</span>
-                    <p className="text-neutral-300">{cat.requested_items}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* Quotation Modal */}
             {cateringToQuote && (
@@ -1561,71 +1698,83 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             </div>
 
-            {/* Financial Summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              <div className="p-6 rounded-2xl bg-[#141418] border border-[#25252e] space-y-1">
-                <span className="text-xs text-neutral-400">Total All-Time Net Sales</span>
-                <p className="font-mono text-3xl font-bold text-amber-300 tabular-nums">
-                  ₱{totalSalesAllTime.toLocaleString()}
+            {orders.length === 0 ? (
+              <div className="p-12 text-center bg-[#141418] rounded-2xl border border-[#25252e] space-y-3">
+                <BarChart3 className="w-8 h-8 text-neutral-500 mx-auto" />
+                <p className="font-serif text-lg text-white">Sales reports will appear when order data becomes available.</p>
+                <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+                  Financial breakdowns, average order values, and bestseller analytics are automatically derived from verified fulfilled order records.
                 </p>
-                <span className="text-[11px] text-neutral-500">Excluding cancelled/rejected orders</span>
               </div>
-
-              <div className="p-6 rounded-2xl bg-[#141418] border border-[#25252e] space-y-1">
-                <span className="text-xs text-neutral-400">Average Order Value (AOV)</span>
-                <p className="font-mono text-3xl font-bold text-white tabular-nums">
-                  ₱{orders.length > 0 ? Math.round(totalSalesAllTime / orders.length).toLocaleString() : 0}
-                </p>
-                <span className="text-[11px] text-neutral-500">Across {orders.length} lifetime orders</span>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-[#141418] border border-[#25252e] space-y-1">
-                <span className="text-xs text-neutral-400">Fulfillment Breakdown</span>
-                <div className="text-xs text-neutral-300 space-y-0.5 pt-1">
-                  <div className="flex justify-between">
-                    <span>Delivery:</span>
-                    <span className="font-mono">{orders.filter((o) => o.fulfillment_type === 'delivery').length} orders</span>
+            ) : (
+              <>
+                {/* Financial Summary */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div className="p-6 rounded-2xl bg-[#141418] border border-[#25252e] space-y-1">
+                    <span className="text-xs text-neutral-400">Total All-Time Net Sales</span>
+                    <p className="font-mono text-3xl font-bold text-amber-300 tabular-nums">
+                      ₱{totalSalesAllTime.toLocaleString()}
+                    </p>
+                    <span className="text-[11px] text-neutral-500">Excluding cancelled/rejected orders</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Pickup:</span>
-                    <span className="font-mono">{orders.filter((o) => o.fulfillment_type === 'pickup').length} orders</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Dine-In:</span>
-                    <span className="font-mono">{orders.filter((o) => o.fulfillment_type === 'dine_in').length} orders</span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Bestselling Dishes List */}
-            <div className="p-6 rounded-2xl bg-[#141418] border border-[#25252e] space-y-4">
-              <h3 className="font-serif text-lg font-bold text-white">
-                Bestselling Dishes by Sales Volume
-              </h3>
+                  <div className="p-6 rounded-2xl bg-[#141418] border border-[#25252e] space-y-1">
+                    <span className="text-xs text-neutral-400">Average Order Value (AOV)</span>
+                    <p className="font-mono text-3xl font-bold text-white tabular-nums">
+                      ₱{orders.length > 0 ? Math.round(totalSalesAllTime / orders.length).toLocaleString() : 0}
+                    </p>
+                    <span className="text-[11px] text-neutral-500">Across {orders.length} lifetime orders</span>
+                  </div>
 
-              <div className="space-y-2">
-                {menuItems.slice(0, 5).map((dish, idx) => (
-                  <div
-                    key={dish.id}
-                    className="p-3.5 rounded-xl bg-[#181820] flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-full bg-[#242432] text-amber-300 font-bold flex items-center justify-center font-mono">
-                        {idx + 1}
-                      </span>
-                      <div>
-                        <span className="font-semibold text-white block">{dish.name}</span>
-                        <span className="text-neutral-400 text-[11px]">{dish.dietary_tags?.join(', ') || 'Japanese Specialty'}</span>
+                  <div className="p-6 rounded-2xl bg-[#141418] border border-[#25252e] space-y-1">
+                    <span className="text-xs text-neutral-400">Fulfillment Breakdown</span>
+                    <div className="text-xs text-neutral-300 space-y-0.5 pt-1">
+                      <div className="flex justify-between">
+                        <span>Delivery:</span>
+                        <span className="font-mono">{orders.filter((o) => o.fulfillment_type === 'delivery').length} orders</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Pickup:</span>
+                        <span className="font-mono">{orders.filter((o) => o.fulfillment_type === 'pickup').length} orders</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Dine-In:</span>
+                        <span className="font-mono">{orders.filter((o) => o.fulfillment_type === 'dine_in').length} orders</span>
                       </div>
                     </div>
-                    <span className="font-mono font-bold text-amber-300 tabular-nums">
-                      ₱{dish.price}
-                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+
+                {/* Bestselling Dishes List */}
+                <div className="p-6 rounded-2xl bg-[#141418] border border-[#25252e] space-y-4">
+                  <h3 className="font-serif text-lg font-bold text-white">
+                    Bestselling Dishes by Sales Volume
+                  </h3>
+
+                  <div className="space-y-2">
+                    {menuItems.slice(0, 5).map((dish, idx) => (
+                      <div
+                        key={dish.id}
+                        className="p-3.5 rounded-xl bg-[#181820] flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-[#242432] text-amber-300 font-bold flex items-center justify-center font-mono">
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <span className="font-semibold text-white block">{dish.name}</span>
+                            <span className="text-neutral-400 text-[11px]">{dish.dietary_tags?.join(', ') || 'Japanese Specialty'}</span>
+                          </div>
+                        </div>
+                        <span className="font-mono font-bold text-amber-300 tabular-nums">
+                          ₱{dish.price}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
           </div>
         )}

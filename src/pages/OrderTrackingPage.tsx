@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Order, OrderStatus, RestaurantSettings } from '../types';
 import { restaurantStore } from '../lib/store';
 import { CheckCircle2, Clock, Truck, UtensilsCrossed, AlertTriangle, ArrowLeft, Printer, RefreshCw, Phone, ShieldCheck } from 'lucide-react';
+import { useDemoMode } from '../context/DemoModeContext';
 
 interface OrderTrackingPageProps {
   orderNumber: string;
@@ -22,6 +23,7 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
   onNavigate,
   settings,
 }) => {
+  const { isDemoMode, openDemoModal } = useDemoMode();
   const [order, setOrder] = useState<Order | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [paymentReference, setPaymentReference] = useState('');
@@ -68,6 +70,11 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
 
   const handleSavePaymentRef = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDemoMode) {
+      const submitBtn = (e.target as HTMLElement).querySelector('button[type="submit"]') as HTMLElement | null;
+      openDemoModal(submitBtn || (document.activeElement as HTMLElement | null));
+      return;
+    }
     if (!paymentReference.trim()) return;
     setRefSaved(true);
     setTimeout(() => setRefSaved(false), 3000);
@@ -430,6 +437,12 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
               />
               <button
                 type="submit"
+                onClick={(e) => {
+                  if (isDemoMode) {
+                    e.preventDefault();
+                    openDemoModal(e.currentTarget);
+                  }
+                }}
                 className="px-4 py-2 bg-[#991b1b] hover:bg-[#b91c1c] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
               >
                 Save Reference

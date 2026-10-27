@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Users, CheckCircle2, AlertCircle, ArrowRight, Sparkles, UtensilsCrossed, Gift } from 'lucide-react';
 import { CateringInquiry, RestaurantSettings } from '../types';
 import { restaurantStore } from '../lib/store';
+import { useDemoMode } from '../context/DemoModeContext';
 
 interface CateringPageProps {
   settings: RestaurantSettings;
@@ -12,14 +13,15 @@ export const CateringPage: React.FC<CateringPageProps> = ({
   settings,
   onNavigate,
 }) => {
+  const { isDemoMode, openDemoModal } = useDemoMode();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
-  const [eventType, setEventType] = useState('Birthday Celebration');
+  const [eventType, setEventType] = useState('Family / Group Gathering');
   const [eventDate, setEventDate] = useState('');
-  const [guestCount, setGuestCount] = useState(25);
-  const [budgetRange, setBudgetRange] = useState('₱10,000 – ₱15,000');
-  const [requestedItems, setRequestedItems] = useState('Honyaki Grand Celebration Platters (40 pcs) + Tempura & Bento Sets');
+  const [guestCount, setGuestCount] = useState(20);
+  const [budgetRange, setBudgetRange] = useState('');
+  const [requestedItems, setRequestedItems] = useState('');
   const [fulfillmentPreference, setFulfillmentPreference] = useState<'pickup' | 'delivery'>('delivery');
   const [eventLocation, setEventLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -30,6 +32,11 @@ export const CateringPage: React.FC<CateringPageProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDemoMode) {
+      const submitBtn = (e.target as HTMLElement).querySelector('button[type="submit"]') as HTMLElement | null;
+      openDemoModal(submitBtn || (document.activeElement as HTMLElement | null));
+      return;
+    }
     setErrorMessage(null);
 
     if (!customerName.trim()) {
@@ -59,7 +66,7 @@ export const CateringPage: React.FC<CateringPageProps> = ({
       event_type: eventType,
       event_date: eventDate,
       guest_count: guestCount,
-      budget_range: budgetRange,
+      budget_range: budgetRange.trim() || undefined,
       requested_items: requestedItems.trim(),
       fulfillment_preference: fulfillmentPreference,
       event_location: fulfillmentPreference === 'delivery' ? eventLocation.trim() : 'Pickup at Sayre Highway Restaurant',
@@ -69,8 +76,15 @@ export const CateringPage: React.FC<CateringPageProps> = ({
       updated_at: new Date().toISOString(),
     };
 
-    const existing = restaurantStore.getCateringInquiries();
-    restaurantStore.saveCateringInquiries([newInquiry, ...existing]);
+    restaurantStore.createCateringInquiry(newInquiry);
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('honyaki_my_recent_catering') || '[]');
+      if (!existing.includes(newInquiry.id)) {
+        localStorage.setItem('honyaki_my_recent_catering', JSON.stringify([newInquiry.id, ...existing]));
+      }
+      localStorage.setItem('honyaki_customer_phone', customerPhone.trim());
+    } catch (e) {}
 
     setIsSubmitting(false);
     setSubmittedInquiry(newInquiry);
@@ -394,6 +408,12 @@ export const CateringPage: React.FC<CateringPageProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
+            onClick={(e) => {
+              if (isDemoMode) {
+                e.preventDefault();
+                openDemoModal(e.currentTarget);
+              }
+            }}
             className="w-full py-4 rounded-xl font-semibold text-xs uppercase tracking-wider text-white bg-[#991b1b] hover:bg-[#b91c1c] transition-all shadow-lg shadow-red-950/40 cursor-pointer disabled:opacity-50"
           >
             {isSubmitting ? 'Submitting Inquiry...' : 'Submit Catering Inquiry for Quotation'}

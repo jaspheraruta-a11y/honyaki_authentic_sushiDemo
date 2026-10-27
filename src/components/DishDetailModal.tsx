@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Minus, Check, AlertCircle } from 'lucide-react';
 import { MenuItem, MenuItemVariant, MenuItemAddon } from '../types';
+import { useDemoMode } from '../context/DemoModeContext';
 
 interface DishDetailModalProps {
   dish: MenuItem | null;
@@ -18,6 +19,7 @@ export const DishDetailModal: React.FC<DishDetailModalProps> = ({
   onClose,
   onAddToCart,
 }) => {
+  const { isDemoMode, openDemoModal } = useDemoMode();
   if (!dish) return null;
 
   const [quantity, setQuantity] = useState(1);
@@ -40,7 +42,16 @@ export const DishDetailModal: React.FC<DishDetailModalProps> = ({
     }
   };
 
-  const handleAdd = () => {
+  const handleAdd = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    if (isDemoMode) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      openDemoModal(e?.currentTarget || null);
+      return;
+    }
+
     setAddedAnimation(true);
     onAddToCart(
       dish,

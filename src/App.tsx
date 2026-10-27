@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { DishDetailModal } from './components/DishDetailModal';
 import { CartDrawer } from './components/CartDrawer';
+import { DemoDisclaimerModal } from './components/DemoDisclaimerModal';
 
 import { HomePage } from './pages/HomePage';
 import { MenuPage } from './pages/MenuPage';
@@ -18,8 +19,11 @@ import { AdminDashboard } from './pages/AdminDashboard';
 
 import { MenuItem, CartItem, Promotion, RestaurantSettings, Order } from './types';
 import { restaurantStore } from './lib/store';
+import { DemoModeProvider, useDemoMode } from './context/DemoModeContext';
 
-export default function App() {
+function AppContent() {
+  const { isDemoMode, openDemoModal } = useDemoMode();
+
   // Current Route State (defaults to pathname or '/')
   const [currentRoute, setCurrentRoute] = useState<string>(() => {
     const hash = window.location.hash.replace('#', '');
@@ -76,13 +80,18 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Cart Handlers
+  // Cart Handlers with Demo Mode Enforcement
   const handleAddToCart = (
     dish: MenuItem,
     quantity: number,
     selectedVariants: { name: string; price_adjustment: number }[],
     selectedAddons: { name: string; price: number }[]
   ) => {
+    if (isDemoMode) {
+      openDemoModal();
+      return;
+    }
+
     const existingIndex = cartItems.findIndex((item) => {
       if (item.menuItem.id !== dish.id) return false;
       const vMatch = JSON.stringify(item.selectedVariants) === JSON.stringify(selectedVariants);
@@ -108,6 +117,10 @@ export default function App() {
   };
 
   const handleQuickAdd = (dish: MenuItem) => {
+    if (isDemoMode) {
+      openDemoModal();
+      return;
+    }
     handleAddToCart(dish, 1, [], []);
   };
 
@@ -158,6 +171,14 @@ export default function App() {
   const handleOrderCompleted = (order: Order) => {
     // Refresh items to show decremented stock
     setMenuItems(restaurantStore.getMenuItems());
+  };
+
+  const handleCheckoutClick = () => {
+    if (isDemoMode) {
+      openDemoModal();
+      return;
+    }
+    navigateTo('/checkout');
   };
 
   const featuredDishes = menuItems.filter((d) => d.is_featured);
@@ -274,12 +295,23 @@ export default function App() {
         items={cartItems}
         onUpdateQuantity={handleUpdateCartQuantity}
         onRemoveItem={handleRemoveCartItem}
-        onCheckout={() => navigateTo('/checkout')}
+        onCheckout={handleCheckoutClick}
         appliedPromo={appliedPromo}
         onApplyPromo={handleApplyPromo}
         onRemovePromo={() => setAppliedPromo(null)}
       />
 
+      {/* Initial Page Load Session Demo Disclaimer Modal */}
+      <DemoDisclaimerModal />
+
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <DemoModeProvider>
+      <AppContent />
+    </DemoModeProvider>
   );
 }

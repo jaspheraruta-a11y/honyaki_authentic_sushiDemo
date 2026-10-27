@@ -9,6 +9,7 @@ import {
   RestaurantSettings,
   Profile,
 } from '../types';
+import { IS_DEMO_MODE } from './demoConfig';
 
 export const GOOGLE_MAPS_URL =
   'https://www.google.com/maps/place/Honyaki+Authentic+Sushi+Valencia/@7.9423426,125.1109165,7617m/data=!3m1!1e3!4m15!1m8!3m7!1s0x32ff197dcc3e6a41:0xfd73c3a172dc74bc!2sValencia+City,+Bukidnon!3b1!8m2!3d7.9048967!4d125.0906584!16zL20vMDZwa2Qy!3m5!1s0x32ff1bffe3fa3871:0x8f886ec8fa41a61c!8m2!3d7.9465815!4d125.1012141!16s%2Fg%2F11p0623p4r?entry=ttu&g_ep=EgoyMDI2MTAyMC4wIKXMDSoASAFQAw%3D%3D';
@@ -233,6 +234,8 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
 ];
 
+import { supabaseService, isSupabaseConfigured } from './supabase';
+
 export const INITIAL_PROMOTIONS: Promotion[] = [
   {
     id: 'promo-welcome',
@@ -243,7 +246,7 @@ export const INITIAL_PROMOTIONS: Promotion[] = [
     starts_at: '2026-01-01',
     expires_at: '2026-12-31',
     usage_limit: 500,
-    times_used: 48,
+    times_used: 0,
     is_active: true,
   },
   {
@@ -255,228 +258,89 @@ export const INITIAL_PROMOTIONS: Promotion[] = [
     starts_at: '2026-01-01',
     expires_at: '2026-12-31',
     usage_limit: 200,
-    times_used: 24,
+    times_used: 0,
     is_active: true,
   },
 ];
 
-export const INITIAL_ORDERS: Order[] = [
-  {
-    id: 'ord-1001',
-    order_number: 'HNY-261027-01',
-    access_token: 'tok_hny_01a',
-    customer_name: 'Maria Elena Santos',
-    customer_email: 'maria.santos@gmail.com',
-    customer_phone: '0917-555-1284',
-    fulfillment_type: 'delivery',
-    delivery_address: 'Door 3, Villa Ernesto Subd, Brgy. Poblacion',
-    delivery_barangay: 'Poblacion',
-    delivery_instructions: 'Please call upon arrival at the subdivision gate.',
-    subtotal: 1005,
-    discount_amount: 100,
-    delivery_fee: 60,
-    total_amount: 965,
-    payment_method: 'gcash',
-    payment_status: 'paid',
-    order_status: 'Preparing',
-    notes: 'Extra pickled ginger please!',
-    items: [
-      {
-        id: 'ord-item-1',
-        order_id: 'ord-1001',
-        menu_item_id: 'item-salmon-nigiri',
-        item_name_snapshot: 'Aburi Salmon Nigiri (3 pcs)',
-        unit_price_snapshot: 245,
-        quantity: 1,
-        selected_variants: [{ name: 'Standard (3 pcs)', price_adjustment: 0 }],
-        selected_addons: [{ name: 'Extra Wasabi & Pickled Ginger', price: 25 }],
-        line_total: 270,
-      },
-      {
-        id: 'ord-item-2',
-        order_id: 'ord-1001',
-        menu_item_id: 'item-tonkotsu-ramen',
-        item_name_snapshot: 'Honyaki Tonkotsu Chashu Ramen',
-        unit_price_snapshot: 385,
-        quantity: 1,
-        selected_variants: [{ name: 'Spicy Chili Garlic Oil (Karaka)', price_adjustment: 35 }],
-        selected_addons: [],
-        line_total: 420,
-      },
-      {
-        id: 'ord-item-3',
-        order_id: 'ord-1001',
-        menu_item_id: 'item-dragon-maki',
-        item_name_snapshot: 'Dragon Specialty Roll (8 pcs)',
-        unit_price_snapshot: 360,
-        quantity: 1,
-        selected_variants: [{ name: 'Full Roll (8 pcs)', price_adjustment: 0 }],
-        selected_addons: [],
-        line_total: 360,
-      },
-    ],
-    created_at: '2026-10-27T05:30:00Z',
-    updated_at: '2026-10-27T05:40:00Z',
-  },
-  {
-    id: 'ord-1002',
-    order_number: 'HNY-261027-02',
-    access_token: 'tok_hny_02b',
-    customer_name: 'Daryl John Ramos',
-    customer_email: 'daryl.ramos@yahoo.com',
-    customer_phone: '0928-892-4112',
-    fulfillment_type: 'pickup',
-    pickup_time: '12:30 PM',
-    subtotal: 1580,
-    discount_amount: 0,
-    delivery_fee: 0,
-    total_amount: 1580,
-    payment_method: 'cash',
-    payment_status: 'pending',
-    order_status: 'Confirmed',
-    notes: 'Picking up during lunch break.',
-    items: [
-      {
-        id: 'ord-item-4',
-        order_id: 'ord-1002',
-        menu_item_id: 'item-grand-platter',
-        item_name_snapshot: 'Honyaki Grand Celebration Platter (40 pcs)',
-        unit_price_snapshot: 1580,
-        quantity: 1,
-        selected_variants: [{ name: '40 Pieces Classic Platter', price_adjustment: 0 }],
-        selected_addons: [],
-        line_total: 1580,
-      },
-    ],
-    created_at: '2026-10-27T05:45:00Z',
-    updated_at: '2026-10-27T05:48:00Z',
-  },
-  {
-    id: 'ord-1003',
-    order_number: 'HNY-261027-03',
-    access_token: 'tok_hny_03c',
-    customer_name: 'Patricia Joy Lim',
-    customer_email: 'patricia.lim@gmail.com',
-    customer_phone: '0995-123-9988',
-    fulfillment_type: 'dine_in',
-    table_number: 'Table 4',
-    subtotal: 580,
-    discount_amount: 58,
-    delivery_fee: 0,
-    total_amount: 522,
-    payment_method: 'maya',
-    payment_status: 'paid',
-    order_status: 'Ready for Pickup',
-    notes: 'Dine-in lunch table 4',
-    items: [
-      {
-        id: 'ord-item-5',
-        order_id: 'ord-1003',
-        menu_item_id: 'item-california-crunch',
-        item_name_snapshot: 'California Crunch Maki (8 pcs)',
-        unit_price_snapshot: 270,
-        quantity: 1,
-        selected_variants: [],
-        selected_addons: [],
-        line_total: 270,
-      },
-      {
-        id: 'ord-item-6',
-        order_id: 'ord-1003',
-        menu_item_id: 'item-gyudon-bowl',
-        item_name_snapshot: 'Slow-Simmered Beef Gyudon',
-        unit_price_snapshot: 310,
-        quantity: 1,
-        selected_variants: [],
-        selected_addons: [],
-        line_total: 310,
-      },
-    ],
-    created_at: '2026-10-27T05:50:00Z',
-    updated_at: '2026-10-27T06:10:00Z',
-  },
-];
+// Production empty defaults for client-review-ready state
+export const INITIAL_ORDERS: Order[] = [];
+export const INITIAL_RESERVATIONS: Reservation[] = [];
+export const INITIAL_CATERING: CateringInquiry[] = [];
+export const INITIAL_INVENTORY_MOVEMENTS: InventoryMovement[] = [];
 
-export const INITIAL_RESERVATIONS: Reservation[] = [
-  {
-    id: 'res-201',
-    customer_name: 'Atty. Roberto Tan',
-    customer_email: 'roberto.tan.law@gmail.com',
-    customer_phone: '0917-701-3421',
-    reservation_date: '2026-10-28',
-    start_time: '18:30',
-    guest_count: 6,
-    special_requests: 'Quiet booth area if possible for business dinner.',
-    occasion: 'Business Dinner',
-    seating_preference: 'Main Hall Booth',
-    reservation_status: 'Confirmed',
-    staff_notes: 'VIP booth 2 reserved. Advance table setup done.',
-    created_at: '2026-10-26T10:00:00Z',
-    updated_at: '2026-10-26T11:30:00Z',
-  },
-  {
-    id: 'res-202',
-    customer_name: 'Camille Grace Navarro',
-    customer_email: 'camille.navarro@outlook.com',
-    customer_phone: '0922-445-6712',
-    reservation_date: '2026-10-29',
-    start_time: '19:00',
-    guest_count: 4,
-    special_requests: 'Celebrating 5th anniversary. Can we request a small surprise candle on dessert?',
-    occasion: 'Anniversary',
-    seating_preference: 'Intimate corner table',
-    reservation_status: 'Pending',
-    staff_notes: 'Call customer to confirm dessert timing.',
-    created_at: '2026-10-27T02:15:00Z',
-    updated_at: '2026-10-27T02:15:00Z',
-  },
-];
-
-export const INITIAL_CATERING: CateringInquiry[] = [
-  {
-    id: 'cat-301',
-    customer_name: 'Valencia Doctors Hospital – Pediatric Dept',
-    customer_email: 'admin.pedia@valenciadoctors.com',
-    customer_phone: '0917-889-2233',
-    event_type: 'Hospital Staff Appreciation Dinner',
-    event_date: '2026-11-05',
-    guest_count: 35,
-    budget_range: '₱15,000 – ₱20,000',
-    requested_items: 'Custom mixed sushi & sashimi platters, Ebi tempura boxes, and Chicken teriyaki don bowls for 35 doctors and nurses.',
-    fulfillment_preference: 'delivery',
-    event_location: 'Valencia Doctors Hospital Function Hall, Sayre Highway',
-    quotation_amount: 17500,
-    inquiry_status: 'quoted',
-    notes: 'Quotation sent via email. Awaiting hospital committee signoff.',
-    created_at: '2026-10-25T08:30:00Z',
-    updated_at: '2026-10-26T09:00:00Z',
-  },
-];
-
-export const INITIAL_INVENTORY_MOVEMENTS: InventoryMovement[] = [
-  {
-    id: 'mov-1',
-    menu_item_id: 'item-salmon-nigiri',
-    movement_type: 'restock',
-    quantity_change: 50,
-    reason: 'Fresh General Santos sashimi salmon supplier delivery',
-    created_by: 'Head Chef Kenji',
-    created_at: '2026-10-27T04:00:00Z',
-  },
-  {
-    id: 'mov-2',
-    menu_item_id: 'item-salmon-nigiri',
-    movement_type: 'order_deduct',
-    quantity_change: -1,
-    reason: 'Fulfillment Order #HNY-261027-01',
-    order_id: 'ord-1001',
-    created_by: 'Kitchen POS Auto-Sync',
-    created_at: '2026-10-27T05:30:00Z',
-  },
-];
-
-// Persistent state wrapper using LocalStorage with fallback
+// Persistent state wrapper using LocalStorage with fallback and Supabase integration
 class RestaurantStore {
+  constructor() {
+    this.purgeLegacyDemoData();
+  }
+
+  // Ensure any cached demo/test records from previous sessions are purged
+  private purgeLegacyDemoData(): void {
+    try {
+      const demoOrderIds = new Set(['ord-1001', 'ord-1002', 'ord-1003']);
+      const storedOrders = localStorage.getItem('honyaki_orders');
+      if (storedOrders) {
+        const parsed: Order[] = JSON.parse(storedOrders);
+        const filtered = parsed.filter(
+          (o) =>
+            !demoOrderIds.has(o.id) &&
+            !o.customer_name.includes('Maria Elena Santos') &&
+            !o.customer_name.includes('Daryl John Ramos') &&
+            !o.customer_name.includes('Patricia Joy Lim')
+        );
+        if (filtered.length !== parsed.length) {
+          localStorage.setItem('honyaki_orders', JSON.stringify(filtered));
+        }
+      }
+
+      const demoResIds = new Set(['res-201', 'res-202']);
+      const storedRes = localStorage.getItem('honyaki_reservations');
+      if (storedRes) {
+        const parsed: Reservation[] = JSON.parse(storedRes);
+        const filtered = parsed.filter(
+          (r) =>
+            !demoResIds.has(r.id) &&
+            !r.customer_name.includes('Roberto Tan') &&
+            !r.customer_name.includes('Camille Grace')
+        );
+        if (filtered.length !== parsed.length) {
+          localStorage.setItem('honyaki_reservations', JSON.stringify(filtered));
+        }
+      }
+
+      const demoCateringIds = new Set(['cat-301']);
+      const storedCatering = localStorage.getItem('honyaki_catering');
+      if (storedCatering) {
+        const parsed: CateringInquiry[] = JSON.parse(storedCatering);
+        const filtered = parsed.filter(
+          (c) =>
+            !demoCateringIds.has(c.id) &&
+            !c.customer_name.includes('Valencia Doctors Hospital')
+        );
+        if (filtered.length !== parsed.length) {
+          localStorage.setItem('honyaki_catering', JSON.stringify(filtered));
+        }
+      }
+
+      const demoMovementIds = new Set(['mov-1', 'mov-2']);
+      const storedMovements = localStorage.getItem('honyaki_inventory_movements');
+      if (storedMovements) {
+        const parsed: InventoryMovement[] = JSON.parse(storedMovements);
+        const filtered = parsed.filter(
+          (m) =>
+            !demoMovementIds.has(m.id) &&
+            !m.reason.includes('General Santos sashimi')
+        );
+        if (filtered.length !== parsed.length) {
+          localStorage.setItem('honyaki_inventory_movements', JSON.stringify(filtered));
+        }
+      }
+    } catch (e) {
+      console.warn('Storage purge error', e);
+    }
+  }
+
   private get<T>(key: string, fallback: T): T {
     try {
       const stored = localStorage.getItem(`honyaki_${key}`);
@@ -492,6 +356,10 @@ class RestaurantStore {
     } catch (e) {
       console.warn('Storage write failed', e);
     }
+  }
+
+  isBackendConfigured(): boolean {
+    return isSupabaseConfigured;
   }
 
   getSettings(): RestaurantSettings {
@@ -555,12 +423,40 @@ class RestaurantStore {
     this.set('reservations', reservations);
   }
 
+  createReservation(reservation: Reservation): void {
+    if (IS_DEMO_MODE) {
+      console.warn('Demo Mode: createReservation blocked.');
+      return;
+    }
+    const list = this.getReservations();
+    this.saveReservations([reservation, ...list]);
+    if (isSupabaseConfigured) {
+      supabaseService.createReservation(reservation).catch((err) => {
+        console.warn('Supabase reservation sync error', err);
+      });
+    }
+  }
+
   getCateringInquiries(): CateringInquiry[] {
     return this.get<CateringInquiry[]>('catering', INITIAL_CATERING);
   }
 
   saveCateringInquiries(inquiries: CateringInquiry[]): void {
     this.set('catering', inquiries);
+  }
+
+  createCateringInquiry(inquiry: CateringInquiry): void {
+    if (IS_DEMO_MODE) {
+      console.warn('Demo Mode: createCateringInquiry blocked.');
+      return;
+    }
+    const list = this.getCateringInquiries();
+    this.saveCateringInquiries([inquiry, ...list]);
+    if (isSupabaseConfigured) {
+      supabaseService.createCateringInquiry(inquiry).catch((err) => {
+        console.warn('Supabase catering sync error', err);
+      });
+    }
   }
 
   getPromotions(): Promotion[] {
@@ -587,6 +483,9 @@ class RestaurantStore {
 
   // Helper to place an order, validating stock and prices
   createOrder(orderData: Omit<Order, 'id' | 'order_number' | 'access_token' | 'created_at' | 'updated_at'>): { success: boolean; order?: Order; error?: string } {
+    if (IS_DEMO_MODE) {
+      return { success: false, error: 'Demo Mode: Real orders cannot be processed on this demonstration website.' };
+    }
     const menuItems = this.getMenuItems();
     
     // Server-side inventory & price check
@@ -645,6 +544,12 @@ class RestaurantStore {
         reason: `Online Order #${orderNumber}`,
         order_id: newOrder.id,
         created_by: 'Customer Order System',
+      });
+    }
+
+    if (isSupabaseConfigured) {
+      supabaseService.createOrder(newOrder).catch((err) => {
+        console.warn('Supabase order sync error', err);
       });
     }
 

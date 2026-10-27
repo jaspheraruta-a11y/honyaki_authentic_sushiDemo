@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, MessageSquare, ExternalLink } from 'lucide-react';
 import { RestaurantSettings } from '../types';
+import { useDemoMode } from '../context/DemoModeContext';
 
 interface ContactPageProps {
   settings: RestaurantSettings;
 }
 
 export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
+  const { isDemoMode, openDemoModal } = useDemoMode();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -15,6 +17,11 @@ export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDemoMode) {
+      const submitBtn = (e.target as HTMLElement).querySelector('button[type="submit"]') as HTMLElement | null;
+      openDemoModal(submitBtn || (document.activeElement as HTMLElement | null));
+      return;
+    }
     if (!name.trim() || !message.trim()) return;
     setSubmitted(true);
   };
@@ -241,6 +248,12 @@ export const ContactPage: React.FC<ContactPageProps> = ({ settings }) => {
 
                 <button
                   type="submit"
+                  onClick={(e) => {
+                    if (isDemoMode) {
+                      e.preventDefault();
+                      openDemoModal(e.currentTarget);
+                    }
+                  }}
                   className="w-full py-3.5 rounded-xl font-semibold text-xs uppercase tracking-wider text-white bg-[#991b1b] hover:bg-[#b91c1c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-950/40 cursor-pointer"
                 >
                   <Send className="w-4 h-4" />

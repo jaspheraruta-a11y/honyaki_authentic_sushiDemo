@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CartItem, FulfillmentType, PaymentMethod, Promotion, RestaurantSettings, Order } from '../types';
 import { ArrowLeft, CheckCircle2, AlertCircle, Clock, MapPin, UtensilsCrossed, Truck, ShieldCheck, Tag } from 'lucide-react';
 import { restaurantStore } from '../lib/store';
+import { useDemoMode } from '../context/DemoModeContext';
 
 interface CheckoutPageProps {
   cartItems: CartItem[];
@@ -49,6 +50,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   onOrderCompleted,
   onNavigate,
 }) => {
+  const { isDemoMode, openDemoModal } = useDemoMode();
   const [fulfillment, setFulfillment] = useState<FulfillmentType>('delivery');
   
   // Customer details
@@ -115,6 +117,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDemoMode) {
+      const submitBtn = (e.target as HTMLElement).querySelector('button[type="submit"]') as HTMLElement | null;
+      openDemoModal(submitBtn || (document.activeElement as HTMLElement | null));
+      return;
+    }
     setErrorMessage(null);
 
     // Validation
@@ -185,6 +192,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setIsSubmitting(false);
 
     if (result.success && result.order) {
+      try {
+        const existing = JSON.parse(localStorage.getItem('honyaki_my_recent_orders') || '[]');
+        if (!existing.includes(result.order.order_number)) {
+          localStorage.setItem('honyaki_my_recent_orders', JSON.stringify([result.order.order_number, ...existing]));
+        }
+        localStorage.setItem('honyaki_customer_phone', customerPhone.trim());
+      } catch (e) {}
       onClearCart();
       onOrderCompleted(result.order);
       onNavigate(`/order/${result.order.order_number}`);
@@ -634,6 +648,12 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
+              onClick={(e) => {
+                if (isDemoMode) {
+                  e.preventDefault();
+                  openDemoModal(e.currentTarget);
+                }
+              }}
               className="w-full py-4 rounded-xl font-semibold text-xs uppercase tracking-wider text-white bg-[#991b1b] hover:bg-[#b91c1c] transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-950/40 cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? (

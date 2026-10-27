@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal, Plus, AlertCircle, Sparkles, Check } from 'lucide-react';
+import { Search, SlidersHorizontal, Plus, AlertCircle, Sparkles, Check, UtensilsCrossed } from 'lucide-react';
 import { MenuItem, MenuCategory } from '../types';
+import { useDemoMode } from '../context/DemoModeContext';
 
 interface MenuPageProps {
   categories: MenuCategory[];
@@ -15,6 +16,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
   onOpenDishModal,
   onQuickAdd,
 }) => {
+  const { isDemoMode, openDemoModal } = useDemoMode();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'name'>('featured');
@@ -60,12 +62,17 @@ export const MenuPage: React.FC<MenuPageProps> = ({
     return result;
   }, [menuItems, selectedCategory, searchQuery, sortBy, onlyAvailable]);
 
-  const handleQuickAdd = (dish: MenuItem, e: React.MouseEvent) => {
+  const handleQuickAdd = (dish: MenuItem, e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     // If dish has variants, open modal so customer picks their choice
     if (dish.variants && dish.variants.length > 0) {
       onOpenDishModal(dish);
     } else {
+      if (isDemoMode) {
+        e.preventDefault();
+        openDemoModal(e.currentTarget);
+        return;
+      }
       onQuickAdd(dish);
       setQuickAddedId(dish.id);
       setTimeout(() => setQuickAddedId(null), 800);
@@ -172,7 +179,19 @@ export const MenuPage: React.FC<MenuPageProps> = ({
       </div>
 
       {/* Menu Grid */}
-      {filteredItems.length === 0 ? (
+      {menuItems.length === 0 ? (
+        <div className="py-20 text-center space-y-4 bg-[#131317] border border-[#212128] rounded-2xl p-8 max-w-xl mx-auto shadow-xl">
+          <div className="w-14 h-14 rounded-full bg-[#1e1e24] flex items-center justify-center text-amber-400 mx-auto">
+            <UtensilsCrossed className="w-7 h-7" />
+          </div>
+          <h2 className="font-serif text-2xl font-bold text-white">
+            Our menu is being updated. Please check back soon.
+          </h2>
+          <p className="text-xs text-neutral-400 max-w-md mx-auto leading-relaxed">
+            We are currently refreshing our kitchen selections with today's fresh seafood deliveries from Mindanao ports.
+          </p>
+        </div>
+      ) : filteredItems.length === 0 ? (
         <div className="py-20 text-center space-y-3 bg-[#131317] border border-[#212128] rounded-2xl p-8">
           <p className="font-serif text-lg text-white">No dishes found matching your criteria</p>
           <p className="text-xs text-neutral-400 max-w-sm mx-auto">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, AlertCircle } from 'lucide-react';
 import { CartItem, Promotion } from '../types';
+import { useDemoMode } from '../context/DemoModeContext';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onApplyPromo,
   onRemovePromo,
 }) => {
+  const { isDemoMode, openDemoModal } = useDemoMode();
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [promoFeedback, setPromoFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -254,7 +256,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
             {/* Proceed to Checkout CTA */}
             <button
-              onClick={() => {
+              onClick={(e) => {
+                if (isDemoMode) {
+                  e.preventDefault();
+                  openDemoModal(e.currentTarget);
+                  return;
+                }
                 onClose();
                 onCheckout();
               }}
